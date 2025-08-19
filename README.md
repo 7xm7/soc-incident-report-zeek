@@ -46,7 +46,7 @@ This report documents the analysis performed in the TryHackMe **Zeek Exercises**
     ```bash
     cat conn.log | zeek-cut id.orig_h | sort -u
     ```
-  - Found the hosting domain for malicious downloads (defanged):
+  - Found the hosting domain for malicious downloads):
     ```bash
     cat http.log | zeek-cut host uri
     ```
@@ -79,12 +79,10 @@ This report documents the analysis performed in the TryHackMe **Zeek Exercises**
     ```
   - Found exploit file extension in URI:
     ```bash
-    cat http.log | zeek-cut uri
-    ```
+    cat http.log | grep -i exploit    ```
   - Extracted base64 payload and decoded file name:
     ```bash
-    cat log4j.log | zeek-cut uri | grep "Base64" | awk -F/ '{print $NF}' | base64 -d
-    ```
+    cat log4j.log | grep Base64 | less
 
 - **Findings:**
   - Number of signature hits: **3**

@@ -1,79 +1,106 @@
-# Zeek Lab Report
+# Zeek Exercises – Incident Report
 
-## Overview
-This report documents my practice and findings while working with **Zeek** in the TryHackMe SOC Level 1 path.  
-The objective was to analyze network traffic from `.pcap` files using Zeek, extract meaningful indicators, and practice filtering logs with `zeek-cut` and UNIX utilities (`sort`, `uniq`, `grep`).
-
----
-
-## Environment
-- **Platform**: TryHackMe (Zeek room)  
-- **Tool**: Zeek  
-- **Dataset**: Provided `.pcap` files with simulated network activity  
+## Overview  
+This report documents the analysis performed in the TryHackMe **Zeek Exercises** room. It covers detection of anomalous DNS activity, phishing attempts, and Log4j exploitation using generated logs and command line analysis.
 
 ---
 
-## Tasks
+## Task 1 – Anomalous DNS
 
-### Task 1 – Generate Zeek Logs
-- Command: `zeek -r traffic.pcap`  
-- Output: multiple log files (`conn.log`, `dns.log`, `http.log`, `ssl.log`, etc.)  
+- **Objective:** Verify if the "Anomalous DNS Activity" alert is a true positive.
+- **Actions:**
+  - Ran Zeek on the `dns-tunneling.pcap` file:
+    ```bash
+    zeek -C -r dns-tunneling.pcap
+    ```
+  - Counted AAAA (IPv6) DNS records:
+    ```bash
+    cat dns.log | zeek-cut qtype_name | grep "AAAA" | wc -l
+    ```
+  - Checked longest connection duration in `conn.log`:
+    ```bash
+    cat conn.log | zeek-cut duration | sort -n | tail -n 1
+    ```
+  - Counted unique domain queries:
+    ```bash
+    cat dns.log | zeek-cut query | awk -F. '{print $(NF-1)"."$NF}' | sort -u | wc -l
+    ```
+  - Identified the anomalous source host IP:
+    ```bash
+    cat conn.log | zeek-cut id.orig_h | sort | uniq -c | sort -nr | head -n 1
+    ```
 
-**Goal**: Understand how Zeek parses raw PCAP data into structured logs.  
+- **Findings:**
+  - Number of AAAA (IPv6) records: **320**
+  - Longest connection duration: **9.420791 seconds**
+  - Number of unique domain queries: **6**
+  - Suspicious source IP: **10.20.57.3**
 
 ---
 
-### Task 2 – Connection Analysis
-- File analyzed: `conn.log`  
-- Command:  
-  ```bash
-  cat conn.log | zeek-cut id.orig_h id.resp_h proto service duration
+## Task 2 – Phishing Attempt
 
-    Extracted source and destination IPs, protocols, services, and session durations.
+- **Objective:** Confirm phishing activity in the traffic.
+- **Actions:**
+  - Located the suspicious source IP (defanged):
+    ```bash
+    cat conn.log | zeek-cut id.orig_h | sort -u
+    ```
+  - Found the hosting domain for malicious downloads (defanged):
+    ```bash
+    cat http.log | zeek-cut host uri
+    ```
+  - Extracted file hash and MIME type from `files.log`:
+    ```bash
+    cat files.log | zeek-cut md5 mime_type | grep "word"
+    ```
+  - Queried VirusTotal to identify file type: **VBA**
+  - Extracted and identified `.exe` file behavior, including contacted domain:
+    - Malicious executable name: **knr.exe**
+    - Contacted domain: **hopto[.]org**
 
-Insight: Identified suspicious connections with long-lived sessions.
-Task 3 – DNS Requests
+---
 
-    File analyzed: dns.log
+## Task 3 – Log4j Exploitation
 
-    Command:
+- **Objective:** Check for exploitation attempts of the Log4j vulnerability.
+- **Actions:**
+  - Ran Zeek with the detection script:
+    ```bash
+    zeek -C -r log4shell.pcapng detection-log4j.zeek
+    ```
+  - Counted signature hits in `signatures.log`:
+    ```bash
+    cat signatures.log | zeek-cut uid | wc -l
+    ```
+  - Identified scanning tool used:
+    ```bash
+    cat http.log | zeek-cut user_agent
+    ```
+  - Found exploit file extension in URI:
+    ```bash
+    cat http.log | zeek-cut uri
+    ```
+  - Extracted base64 payload and decoded file name:
+    ```bash
+    cat log4j.log | zeek-cut uri | grep "Base64" | awk -F/ '{print $NF}' | base64 -d
+    ```
 
-    cat dns.log | zeek-cut query qtype_name | sort | uniq -c | sort -nr
+- **Findings:**
+  - Number of signature hits: **3**
+  - Scanning tool detected: **nmap**
+  - Extension of exploit file: `.class`
+  - Nanme of the filre created: **pwned**
 
-    Listed unique DNS queries and frequency.
+---
 
-Insight: Found repeated queries to suspicious domains suggesting C2 beaconing.
-Task 4 – HTTP Traffic
+## Conclusion  
 
-    File analyzed: http.log
+This lab confirmed the following via Zeek analysis:
 
-    Command:
-
-    cat http.log | zeek-cut id.orig_h host uri | grep ".exe"
-
-    Extracted URLs and identified potential malicious .exe download attempts.
-
-Task 5 – SSL/TLS Certificates
-
-    File analyzed: ssl.log
-
-    Command:
-
-    cat ssl.log | zeek-cut id.resp_h subject issuer
-
-    Verified certificates to detect self-signed or suspicious issuers.
-
-Conclusion
-
-The Zeek lab reinforced the ability to:
-
-    Parse .pcap files into structured logs.
-
-    Use zeek-cut effectively with UNIX pipelines to filter and analyze data.
-
-    Identify IoCs such as suspicious domains, downloads, and anomalous connections.
-
-This knowledge is foundational for SOC workflows, where Zeek serves as a key tool for network forensics and threat detection.
+- Anomalous DNS activity and tunneling detected.
+- Phishing attempts and malicious downloads identified.
+- Evidence of Log4j exploitation attempts captured.
 
 **Made by: Xavier Mota**
-**19/08/2025**
+**19/98/2025**

@@ -101,6 +101,8 @@ This lab confirmed the following via Zeek analysis:
 - Anomalous DNS activity and tunneling detected.
 - Phishing attempts and malicious downloads identified.
 - Evidence of Log4j exploitation attempts captured.
+---
 
 **Made by: Xavier Mota**
+
 **19/98/2025**

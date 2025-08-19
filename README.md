@@ -90,7 +90,7 @@ This report documents the analysis performed in the TryHackMe **Zeek Exercises**
   - Number of signature hits: **3**
   - Scanning tool detected: **nmap**
   - Extension of exploit file: `.class`
-  - Nanme of the filre created: **pwned**
+  - Name of the file created **pwned**
 
 ---
 
@@ -105,4 +105,4 @@ This lab confirmed the following via Zeek analysis:
 
 **Made by: Xavier Mota**
 
-**19/98/2025**
+**19/08/2025**
